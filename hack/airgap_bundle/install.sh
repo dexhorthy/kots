@@ -194,6 +194,12 @@ patchesJson6902:
       version: v1
       kind: StatefulSet
       name: kotsadm-minio
+  - path: ./regcred.json
+    target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: kotsadm-postgres
   - path: ./regcred-pod.json
     target:
       version: v1
