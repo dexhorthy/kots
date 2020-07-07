@@ -351,6 +351,55 @@ The push refers to repository [10.240.0.88:32000/kotsadm-api]
 64e44f6ee017: Preparing
 64fb7723a8c9: Preparing
 ...
+etc etc etc
+...
+
+
+==========
+deploying
+==========
+manifests have been written to ./yaml -- you can press ENTER to deploy them, or Ctrl+C to exit this script. You can deploy them later with
+
+    kubectl apply --namespace test-deploy -k ./yaml
+
+would you like to deploy? [ENTER] 
+serviceaccount/kotsadm-api created
+serviceaccount/kotsadm-operator created
+serviceaccount/kotsadm created
+role.rbac.authorization.k8s.io/kotsadm-api-role created
+role.rbac.authorization.k8s.io/kotsadm-operator-role created
+clusterrole.rbac.authorization.k8s.io/kotsadm-role created
+rolebinding.rbac.authorization.k8s.io/kotsadm-api-rolebinding created
+rolebinding.rbac.authorization.k8s.io/kotsadm-operator-rolebinding created
+clusterrolebinding.rbac.authorization.k8s.io/kotsadm-rolebinding created
+secret/kotsadm-cluster-token created
+secret/kotsadm-encryption created
+secret/kotsadm-minio created
+secret/kotsadm-password created
+secret/kotsadm-postgres created
+secret/kotsadm-session created
+service/kotsadm-api-node created
+service/kotsadm-minio created
+service/kotsadm-postgres created
+service/kotsadm created
+deployment.apps/kotsadm-api created
+deployment.apps/kotsadm-operator created
+deployment.apps/kotsadm created
+statefulset.apps/kotsadm-minio created
+statefulset.apps/kotsadm-postgres created
+pod/kotsadm-migrations-1593530428 created
+
+==========
+postflight checks
+==========
+SUCCESS: cluster token configured
+Connection to 34.68.172.116 closed.
+```
+
+check the pods and wait for things to come up:
+
+```shell script
+gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- ssh dex-airgap-workstation -- KUBECONFIG=./admin.conf /snap/bin/kubectl -n "${NAMESPACE}" get pod
 ```
 
 
@@ -383,6 +432,7 @@ gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- ssh dex-airgap-workstation -
 Next, we need to get the port and expose it locally via an SSH tunnel
 
 ```shell script
+gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- ssh dex-airgap-workstation -- KUBECONFIG=./admin.conf /snap/bin/kubectl -n "${NAMESPACE}" get pod
 gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- ssh dex-airgap-workstation -- KUBECONFIG=./admin.conf /snap/bin/kubectl -n "${NAMESPACE}" get svc kotsadm-nodeport
 ```
 
@@ -396,14 +446,14 @@ kotsadm-nodeport   NodePort   10.96.3.54   <none>        3000:40038/TCP   6s
 Create a SSH tunnel on your laptop via the Jumpbox node.
 
 ```shell script
+export PORT=40038
 export GCLOUD_USER=dex
 export JUMPBOX_PUBLIC_IP=35.193.94.87
-export PORT=40038
 ssh -N -L ${PORT}:${CLUSTER_PRIVATE_IP}:${PORT}  ${GCLOUD_USER}@${JUMPBOX_PUBLIC_IP}
 ```
 
 
-Now, open `localhost:${PORT}` in your browser and you should get to the kotsadm console
+Now, open `localhost:${PORT}` in your browser and you should get to the kotsadm console, proceeding with the install from there.
 
 ### Cleaning up
 
