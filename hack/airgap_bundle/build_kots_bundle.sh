@@ -5,7 +5,8 @@
 set -euo pipefail
 
 
-KOTS_VERSION=v1.16.1
+KOTS_VERSION=v1.16.2
+KOTS_MINIO_VERSION=alpha
 TROUBLESHOOT_VERSION=v0.9.36
 UNAME=linux
 OUTFILE=kots-${KOTS_VERSION}.tar.gz
@@ -52,7 +53,7 @@ build_admin_console_yaml() {
 
   [ -x bin/kots ] || make kots
   set -x
-  ./bin/kots install --yaml --offline --kotsadm-tag ${KOTS_VERSION} appname --namespace appname > dist_bundle/yaml/kotsadm.yaml
+  ./bin/kots install --yaml --offline --kotsadm-tag "${KOTS_VERSION}" --kotsadm-minio-tag "${KOTS_MINIO_VERSION}" appname --namespace appname > dist_bundle/yaml/kotsadm.yaml
   set +x
 }
 
