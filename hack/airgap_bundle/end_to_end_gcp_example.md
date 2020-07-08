@@ -19,8 +19,7 @@ Create an jump box with a public IP and SSH it, this will be our jump box w/ int
 
 
 ```
-export INSTANCE=dex-airgap-jump
-gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-1
+export INSTANCE=dex-airgap-jump; gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-1
 ```
 
 #### airgapped workstation
@@ -164,8 +163,8 @@ Next, we can create a config with the insecure registry, then restart docker
 
 Before proceeding, re-run the following command until docker has come back up:
 
-```shell script script
- gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- "ssh dex-airgap-workstation -- docker image ls"
+```shell script
+gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- "ssh dex-airgap-workstation -- docker image ls"
 ```
 
 and you see
@@ -269,15 +268,15 @@ secret/registry-creds
 From the Jump box, download the kots bundle from S3 and scp it to the airgapped workstation. In a "full airgap" or "sneakernet" scenario, replace `scp` with whatever process is appropriate for moving assets into the airgapped cluster.
 
 ```shell script
-gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- 'wget https://kots-experimental.s3.amazonaws.com/kots-v1.16.1-airgap-experimental-alpha3.tar.gz'
-gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- 'scp kots-v1.16.1-airgap-experimental-alpha3.tar.gz dex-airgap-workstation:'
+gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- 'wget https://kots-experimental.s3.amazonaws.com/kots-v1.16.2-airgap-experimental-alpha4.tar.gz'
+gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- 'scp kots-v1.16.2-airgap-experimental-alpha4.tar.gz dex-airgap-workstation:'
 ```
 
 Now, we're ready to untar the bundle and run the install script:
 
 
 ```shell script
-gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- 'ssh dex-airgap-workstation tar xvf kots-v1.16.1-airgap-experimental-alpha3.tar.gz'
+gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- 'ssh dex-airgap-workstation tar xvf kots-v1.16.2-airgap-experimental-alpha4.tar.gz'
 ```
 
 
@@ -295,12 +294,12 @@ Should print
 ./kots
 ./yaml/
 ./yaml/kotsadm.yaml
-./images/kotsadm-kotsadm-migrations-v1.16.1.tar
+./images/kotsadm-kotsadm-migrations-v1.16.2.tar
 ./images/postgres-10.7.tar
-./images/kotsadm-kotsadm-operator-v1.16.1.tar
-./images/kotsadm-kotsadm-api-v1.16.1.tar
-./images/kotsadm-kotsadm-v1.16.1.tar
-./images/kotsadm-minio-v1.16.1.tar
+./images/kotsadm-kotsadm-operator-v1.16.2.tar
+./images/kotsadm-kotsadm-api-v1.16.2.tar
+./images/kotsadm-kotsadm-v1.16.2.tar
+./images/kotsadm-minio-v1.16.2.tar
 ./troubleshoot/support-bundle.yaml
 ```
 
@@ -432,7 +431,6 @@ gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- ssh dex-airgap-workstation -
 Next, we need to get the port and expose it locally via an SSH tunnel
 
 ```shell script
-gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- ssh dex-airgap-workstation -- KUBECONFIG=./admin.conf /snap/bin/kubectl -n "${NAMESPACE}" get pod
 gcloud compute ssh --ssh-flag=-A dex-airgap-jump -- ssh dex-airgap-workstation -- KUBECONFIG=./admin.conf /snap/bin/kubectl -n "${NAMESPACE}" get svc kotsadm-nodeport
 ```
 
@@ -447,8 +445,8 @@ Create a SSH tunnel on your laptop via the Jumpbox node.
 
 ```shell script
 export PORT=40038
-export GCLOUD_USER=dex
 export JUMPBOX_PUBLIC_IP=35.193.94.87
+export GCLOUD_USER=dex
 ssh -N -L ${PORT}:${CLUSTER_PRIVATE_IP}:${PORT}  ${GCLOUD_USER}@${JUMPBOX_PUBLIC_IP}
 ```
 
