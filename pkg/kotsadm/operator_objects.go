@@ -65,7 +65,7 @@ func operatorRole(namespace string) *rbacv1.Role {
 	role := &rbacv1.Role{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "rbac.authorization.k8s.io/v1",
-			Kind:       "Role",
+			Kind:       "ClusterRole",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kotsadm-operator-role",
@@ -88,7 +88,7 @@ func operatorRoleBinding(namespace string) *rbacv1.RoleBinding {
 	roleBinding := &rbacv1.RoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "rbac.authorization.k8s.io/v1",
-			Kind:       "RoleBinding",
+			Kind:       "ClusterRoleBinding",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kotsadm-operator-rolebinding",
@@ -104,7 +104,7 @@ func operatorRoleBinding(namespace string) *rbacv1.RoleBinding {
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "Role",
+			Kind:     "ClusterRole",
 			Name:     "kotsadm-operator-role",
 		},
 	}
