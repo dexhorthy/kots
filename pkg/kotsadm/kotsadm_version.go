@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	OverrideVersion   = ""
-	OverrideRegistry  = ""
-	OverrideNamespace = ""
+	OverrideVersion      = ""
+	OverrideMinioVersion = ""
+	OverrideRegistry     = ""
+	OverrideNamespace    = ""
 )
 
 // return "alpha" for all invalid versions of kots,
@@ -24,6 +25,14 @@ func kotsadmTag() string {
 	kotsVersion := version.Version()
 
 	return kotsadmTagForVersionString(kotsVersion)
+}
+
+func kotsadmMinioTag() string {
+	if OverrideMinioVersion != "" {
+		return OverrideMinioVersion
+	}
+
+	return kotsadmTag()
 }
 
 func kotsadmTagForVersionString(kotsVersion string) string {

@@ -118,7 +118,7 @@ func minioStatefulset(deployOptions types.DeployOptions) *appsv1.StatefulSet {
 					},
 					Containers: []corev1.Container{
 						{
-							Image:           fmt.Sprintf("%s/minio:%s", kotsadmRegistry(), kotsadmTag()),
+							Image:           fmt.Sprintf("%s/minio:%s", kotsadmRegistry(), kotsadmMinioTag()),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Name:            "kotsadm-minio",
 							Command: []string{

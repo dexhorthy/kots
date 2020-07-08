@@ -77,6 +77,7 @@ func InstallCmd() *cobra.Command {
 			}
 
 			kotsadm.OverrideVersion = v.GetString("kotsadm-tag")
+			kotsadm.OverrideMinioVersion = v.GetString("kotsadm-minio-tag")
 			kotsadm.OverrideRegistry = v.GetString("kotsadm-registry")
 			kotsadm.OverrideNamespace = v.GetString("kotsadm-namespace")
 
@@ -247,9 +248,11 @@ func InstallCmd() *cobra.Command {
 
 	// the following group of flags are useful for testing, but we don't want to pollute the help screen with them
 	cmd.Flags().String("kotsadm-tag", "", "set to override the tag of kotsadm. this may create an incompatible deployment because the version of kots and kotsadm are designed to work together")
+	cmd.Flags().String("kotsadm-minio-tag", "", "set to override the tag of kotsadm-minio. this may create an incompatible deployment because the version of kots, kotsadm, and kotsadm-minio are designed to work together")
 	cmd.Flags().String("kotsadm-registry", "", "set to override the registry of kotsadm image. this may create an incompatible deployment because the version of kots and kotsadm are designed to work together")
 	cmd.Flags().String("kotsadm-namespace", "", "set to override the namespace of kotsadm image. this may create an incompatible deployment because the version of kots and kotsadm are designed to work together")
 	cmd.Flags().MarkHidden("kotsadm-tag")
+	cmd.Flags().MarkHidden("kotsadm-minio-tag")
 	cmd.Flags().MarkHidden("kotsadm-registry")
 	cmd.Flags().MarkHidden("kotsadm-namespace")
 
