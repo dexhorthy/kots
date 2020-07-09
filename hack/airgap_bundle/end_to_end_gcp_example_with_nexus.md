@@ -41,7 +41,7 @@ gcloud compute ssh airgap-workstation -- 'sudo snap install kubectl --classic'
 Let's also pull a standard busybox image before turning off internet, we'll use this for testing later
 
 ```shell script
-gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- docker pull busybox
+gcloud compute ssh airgap-workstation -- docker pull busybox
 ```
 
 Next, remove the machine's public IP. 
@@ -83,7 +83,7 @@ gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- docker
 
 #### airgapped cluster 
 
-create a GCP vm with online internet access, this will be our airgapped cluster, but we'll use a an internet connection to install k8s and get a registry up and running.
+create a GCP vm with online internet access, this will be our airgapped cluster, but we'll use a an internet connection to install k8s.
 
 ```shell script
 INSTANCE=airgap-cluster; gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-4 
@@ -121,12 +121,12 @@ this command should hang, and you should see something with `Network is unreacha
 #### Final Workstation Setup
 
 
-Now, let's very our docker client on the workstation and make sure we have kubectl access properly configured before we do the full installation. We'll do by ssh'ing the workstation via the jump box
+Now, let's verify our docker client on the workstation and make sure we have kubectl access properly configured before we do the full installation. We'll this do by ssh'ing the workstation via the jump box
 
 
 ###### Kubectl
 
-next, ssh into the airgapped worksation and grab the `admin.conf` from the cluster and run a few kubectl commands to ensure its working
+ssh into the airgapped worksation and grab the `admin.conf` from the cluster and run a few kubectl commands to ensure its working
 
 ```shell script
 gcloud compute ssh --ssh-flag=-A airgap-jump -- 'ssh -A airgap-workstation'
@@ -141,7 +141,7 @@ kubectl get ns
 kubectl get pod -n kube-system
 ```
 
-Should see something like
+You should see something like
 
 ```
 NAME                                   READY   STATUS    RESTARTS   AGE
@@ -155,13 +155,13 @@ kube-scheduler-dex-airgap-2            1/1     Running   0          13m
 weave-net-7nf4z                        2/2     Running   0          15m
 ```
 
-Now -- log out of the airgapped instance
+Now, log out of the airgapped instance
 
 ```shell script
 exit
 ```
 
-###### Namespace and Secret
+##### Namespace and Secret
 
 One of the prerequisites for the installer is a namespace with an existing pull secret for the install, let's create those now:
 
@@ -387,13 +387,13 @@ If you run into issues, you may be able to use the bundled support-bundle tool t
 - you have the `admin.conf` kubeconfig on the airgap workstation
 - you have unpacked the kots tar.gz on the airgap workstation
 
-The support bundle collected will include logs for all kots services:
+The support bundle collected will collect logs for all kots services.
 
 ```shell script
 gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- KUBECONFIG=./admin.conf ./support-bundle ./troubleshoot/support-bundle.yaml
 ```
 
-then, copy the bundle to your local machine
+Once it's collected, copy the bundle to your local machine
 
 ```shell script
 gcloud compute ssh --ssh-flag=-A airgap-jump -- scp airgap-workstation:support-bundle.tar.gz .
@@ -402,7 +402,7 @@ gcloud compute scp airgap-jump:support-bundle.tar.gz .
 
 ### Cleaning up
 
-To clean up, delete the servers in question
+To clean up, delete the servers we created
 
 ```shell script
 gcloud compute instances delete airgap-cluster airgap-jump airgap-workstation

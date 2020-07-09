@@ -140,7 +140,7 @@ this command should hang, and you should see something with `Network is unreacha
 #### Final Workstation Setup
 
 
-Now, let's very our docker client on the workstation and make sure we have kubectl access properly configured before we do the full installation. We'll do by ssh'ing the workstation via the jump box
+Now, let's verify our docker client on the workstation and make sure we have kubectl access properly configured before we do the full installation. We'll do this by ssh'ing the workstation via the jump box
 
 ###### Docker
 
@@ -185,7 +185,7 @@ We can verify connectivity with a login + pull of the image we previously pushed
 ```
 
 
-should see something like 
+you should see something like 
 
 ```text
 latest: Pulling from busybox
@@ -215,7 +215,7 @@ kubectl get ns
 kubectl get pod -n kube-system
 ```
 
-Should see something like
+you should see something like
 
 ```
 NAME                                   READY   STATUS    RESTARTS   AGE
@@ -229,13 +229,13 @@ kube-scheduler-dex-airgap-2            1/1     Running   0          13m
 weave-net-7nf4z                        2/2     Running   0          15m
 ```
 
-Now -- log out of the airgapped instance
+Now, log out of the airgapped instance
 
 ```shell script
 exit
 ```
 
-###### Namespace and Secret
+##### Namespace and Secret
 
 One of the prerequisites for the installer is a namespace with an existing pull secret for the install, let's create those now:
 
@@ -460,13 +460,13 @@ If you run into issues, you may be able to use the bundled support-bundle tool t
 - you have the `admin.conf` kubeconfig on the airgap workstation
 - you have unpacked the kots tar.gz on the airgap workstation
 
-The support bundle collected will include logs for all kots services:
+The support bundle collected will collect logs for all kots services.
 
 ```shell script
 gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- KUBECONFIG=./admin.conf ./support-bundle ./troubleshoot/support-bundle.yaml
 ```
 
-then, copy the bundle to your local machine
+Once it's collected, copy the bundle to your local machine
 
 ```shell script
 gcloud compute ssh --ssh-flag=-A airgap-jump -- scp airgap-workstation:support-bundle.tar.gz .
@@ -475,7 +475,7 @@ gcloud compute scp airgap-jump:support-bundle.tar.gz .
 
 ### Cleaning up
 
-To clean up, delete the servers in question
+To clean up, delete the servers we created
 
 ```shell script
 gcloud compute instances delete airgap-cluster airgap-jump airgap-workstation
