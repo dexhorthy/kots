@@ -28,7 +28,7 @@ create a GCP vm to be our airgapped workstation. We'll give it outbound network 
 
 
 ```shell script
-export INSTANCE=airgap-workstation; gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-1 
+export INSTANCE=airgap-workstation; gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-1
 ```
 
 ```shell script
@@ -44,7 +44,7 @@ Let's also pull a standard busybox image before turning off internet, we'll use 
 gcloud compute ssh airgap-workstation -- docker pull busybox
 ```
 
-Next, remove the machine's public IP. 
+Next, remove the machine's public IP.
 
 ```shell script
 gcloud compute instances delete-access-config airgap-workstation
@@ -81,12 +81,12 @@ gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- docker
 gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- docker push ${DOCKER_REGISTRY}/busybox
 ```
 
-#### airgapped cluster 
+#### airgapped cluster
 
 create a GCP vm with online internet access, this will be our airgapped cluster, but we'll use a an internet connection to install k8s.
 
 ```shell script
-INSTANCE=airgap-cluster; gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-4 
+INSTANCE=airgap-cluster; gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-4
 ```
 
 
@@ -147,11 +147,11 @@ You should see something like
 NAME                                   READY   STATUS    RESTARTS   AGE
 coredns-5644d7b6d9-j6gqs               1/1     Running   0          15m
 coredns-5644d7b6d9-s7q64               1/1     Running   0          15m
-etcd-dex-airgap-2                      1/1     Running   0          14m
-kube-apiserver-dex-airgap-2            1/1     Running   0          14m
-kube-controller-manager-dex-airgap-2   1/1     Running   0          13m
+etcd-airgap-2                      1/1     Running   0          14m
+kube-apiserver-airgap-2            1/1     Running   0          14m
+kube-controller-manager-airgap-2   1/1     Running   0          13m
 kube-proxy-l6fw8                       1/1     Running   0          15m
-kube-scheduler-dex-airgap-2            1/1     Running   0          13m
+kube-scheduler-airgap-2            1/1     Running   0          13m
 weave-net-7nf4z                        2/2     Running   0          15m
 ```
 
@@ -287,7 +287,7 @@ manifests have been written to ./yaml -- you can press ENTER to deploy them, or 
 
     kubectl apply --namespace test-deploy -k ./yaml
 
-would you like to deploy? [ENTER] 
+would you like to deploy? [ENTER]
 serviceaccount/kotsadm-api created
 serviceaccount/kotsadm-operator created
 serviceaccount/kotsadm created
@@ -381,9 +381,9 @@ Now, open `localhost:${PORT}` in your browser and you should get to the kotsadm 
 
 ### Troubleshooting
 
-If you run into issues, you may be able to use the bundled support-bundle tool to collect a very helpful diagnostic bundle. This will only be usable once 
+If you run into issues, you may be able to use the bundled support-bundle tool to collect a very helpful diagnostic bundle. This will only be usable once
 
-- the cluster is up and 
+- the cluster is up and
 - you have the `admin.conf` kubeconfig on the airgap workstation
 - you have unpacked the kots tar.gz on the airgap workstation
 

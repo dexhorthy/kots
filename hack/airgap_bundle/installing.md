@@ -1,8 +1,8 @@
 ### Definitions
 
-- Public Workstation: A laptop somewhere, has access to internet, probably in a DMZ somewhere. In this case we'll use a GCP server, `dex-airgap-jump`
-- Airgapped Workstation: `dex-airgap-workstation` -- has kubectl access to an "airgapped cluster", and network access to a "private registry"
-- Airgapped Cluster: in this case we'll [use a kURL cluster in GCP](#appendix-creating-an-airgapped-kubernetes-cluster-in-gcp), but any k8s cluster works, if you want a real test you should remove any public outbound internet gateways though. This example uses a node called `dex-airgap-cluster`
+- Public Workstation: A laptop somewhere, has access to internet, probably in a DMZ somewhere. In this case we'll use a GCP server, `airgap-jump`
+- Airgapped Workstation: `airgap-workstation` -- has kubectl access to an "airgapped cluster", and network access to a "private registry"
+- Airgapped Cluster: in this case we'll [use a kURL cluster in GCP](#appendix-creating-an-airgapped-kubernetes-cluster-in-gcp), but any k8s cluster works, if you want a real test you should remove any public outbound internet gateways though. This example uses a node called `airgap-cluster`
 - Private Registry: a separate registry to which images will be pushed during install, and pulled from within the cluster. The cluster should have network access to this registry to pull images.
 - KOTS Bundle: Kots bundle can be [built from source](#appendix-building-the-bundle), or downloaded from s3: https://kots-experimental.s3.amazonaws.com/kots-v1.16.2-airgap-experimental-alpha4.tar.gz
 
@@ -12,7 +12,7 @@
 From Public Workstation, move kots bundle to Airgapped Workstation
 
 ```
-gcloud compute scp kots-v1.16.1.tar.gz dex-airgap-jump:
+gcloud compute scp kots-v1.16.1.tar.gz airgap-jump:
 ```
 
 This installer expects a namespace and a pull secret to already exist on the target cluster. Let's create them from the Airgapped Workstation
@@ -74,7 +74,7 @@ Let's invoke this with our set variables (I'm leaving namespace blank in this ca
 I'll omit the docker credentials.
 
 ```shell script
-./install.sh "${DOCKER_REGISTRY}" "${NAMESPACE}" "registry-creds" 
+./install.sh "${DOCKER_REGISTRY}" "${NAMESPACE}" "registry-creds"
 ```
 
 If you need to pass credentials you can add them with two additional arguments
@@ -90,7 +90,7 @@ Once this is finished and the postflight checks have completed, we can get a new
 ./kots reset-password -n "${NAMESPACE}"
 ```
 
-Next, we need to expose the admin console. If we're running kubectl from a workstation with a browser, we can run 
+Next, we need to expose the admin console. If we're running kubectl from a workstation with a browser, we can run
 
 ```shell script
 ./kots admin-console -n "${NAMESPACE}"

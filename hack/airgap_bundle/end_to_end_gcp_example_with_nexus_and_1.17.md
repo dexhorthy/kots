@@ -18,7 +18,7 @@ We'll use ssh tunneling for reaching the instances in the cluster, so it shouldn
 Create an jump box with a public IP and SSH it, this will be our jump box w/ internet access and also access to the airgapped environment
 
 
-```
+```shell script
 export INSTANCE=airgap-jump; gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-1
 ```
 
@@ -36,6 +36,12 @@ export LINUX_USER=dex
 gcloud compute ssh airgap-workstation -- 'sudo apt update && sudo apt install -y docker.io'
 gcloud compute ssh airgap-workstation -- "sudo usermod -aG docker ${LINUX_USER}"
 gcloud compute ssh airgap-workstation -- 'sudo snap install kubectl --classic'
+```
+
+Let's also pull a standard busybox image before turning off internet, we'll use this for testing later
+
+```shell script
+gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- docker pull busybox
 ```
 
 Next, remove the machine's public IP.
@@ -60,25 +66,27 @@ this command should hang, and you should see something with `Network is unreacha
 ```
 
 
-#### airgapped cluster with registry
+#### Registry Access
 
-create a GCP vm with online internet access, this will be our airgapped cluster, but we'll use a an internet connection to install k8s and get a registry up and running.
+This guide assumes we have an existing docker registry, in this case we'll be using a Nexus3 OSS instance w/ a docker registry configured
+
+Let's first verify our credentials from the airgapped workstation and check that we can push/pull an image. **NOTE** in this case, the registry is deployed in the same private network as our airgap-workstation, and we'll access it via private IP, but the only requirement is that the Nexus instance be reachable from the airgapped workstation
+
+```shell script
+export DOCKER_PASSWORD=...
+export DOCKER_USERNAME=...
+export DOCKER_REGISTRY=10.0.0.127
+gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- docker login --username ${DOCKER_USERNAME} --password ${DOCKER_PASSWORD} ${DOCKER_REGISTRY}
+gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- docker tag busybox ${DOCKER_REGISTRY}/busybox
+gcloud compute ssh --ssh-flag=-A airgap-jump -- ssh airgap-workstation -- docker push ${DOCKER_REGISTRY}/busybox
+```
+
+#### airgapped cluster
+
+create a GCP vm with online internet access, this will be our airgapped cluster, but we'll use a an internet connection to install k8s.
 
 ```shell script
 INSTANCE=airgap-cluster; gcloud compute instances create $INSTANCE --boot-disk-size=200GB --image-project ubuntu-os-cloud --image-family ubuntu-1804-lts --machine-type n1-standard-4
-```
-
- Before installing Docker and Kubernetes, let's get the private IP and set it as an insecure docker registry
-
-```shell script
-export CLUSTER_PRIVATE_IP=$(gcloud compute instances describe airgap-cluster --format='get(networkInterfaces[0].networkIP)')
-# verify
-echo ${CLUSTER_PRIVATE_IP}
-```
-
-```shell script
- gcloud compute ssh airgap-cluster -- "sudo mkdir -p /etc/docker"
- gcloud compute ssh airgap-cluster -- "echo \"{\\\"insecure-registries\\\":[\\\"${CLUSTER_PRIVATE_IP}:32000\\\"]}\" | sudo tee /etc/docker/daemon.json"
 ```
 
 
@@ -87,33 +95,6 @@ Now, let's ssh into the instance and bootstrap a minimal kubernetes cluster (det
 ```shell script
 gcloud compute ssh airgap-cluster -- 'curl  https://k8s.kurl.sh/1010f0a  | sudo bash'
 ```
-
-deploy a minimal registry and verify it's running
-
-```shell script
-gcloud compute ssh airgap-cluster -- 'kubectl --kubeconfig ./admin.conf apply -f https://gist.githubusercontent.com/dexhorthy/7a3e6eb119d2d90ff7033a78151c3be2/raw/6c67f95367988d1a016635e3da689e2d998d458c/plain-registry.yaml'
-```
-
-This gist configures a basic auth htpasswd that configures a username/password for `kots/kots`, which we'll use later
-
-```shell script
-gcloud compute ssh airgap-cluster -- 'kubectl --kubeconfig ./admin.conf get pod,svc -n registry'
-```
-
-Now that the registry is up, let's verify that we can docker push/pull to it. We'll use the public IP attached to the instance.
-
-```text
-export INSTANCE_IP=34.66.168.81
-docker login --username kots --password kots ${INSTANCE_IP}:32000
-docker pull busybox
-docker tag busybox ${INSTANCE_IP}:32000/busybox
-docker push ${INSTANCE_IP}:32000/busybox
-```
-
-you may need to also add an `insecure-registy` entry to allow pushing/pulling via http instead of https. If you're testing from docker-for-mac, you can add this via the setttings:
-
-![insecure registry](./img/insecure-registry.png)
-
 
 Next, remove the machine's public IP. We'll use the kubeconfig from this server later.
 
@@ -140,67 +121,12 @@ this command should hang, and you should see something with `Network is unreacha
 #### Final Workstation Setup
 
 
-Now, let's verify our docker client on the workstation and make sure we have kubectl access properly configured before we do the full installation. We'll do this by ssh'ing the workstation via the jump box
+Now, let's verify our docker client on the workstation and make sure we have kubectl access properly configured before we do the full installation. We'll this do by ssh'ing the workstation via the jump box
 
-###### Docker
-
-First, let's get the IP address of our airgapped cluster so we can configure an insecure registry on the airgapped workstation:
-
-
-Next, we can create a docker daemon config to trust this registry from the workstation and from the cluster. First, let's quickly verify that no existing daemon json config exists on the workstation (if it does, you'll have to modify the next step slightly to just add the registry setting)
-
-```shell script
-gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh airgap-workstation 'cat /etc/docker/daemon.json'"
-```
-
-Next, we can create a config with the insecure registry, then restart docker
-
-
-```shell script
- gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh airgap-workstation 'echo \"{\\\"insecure-registries\\\":[\\\"${CLUSTER_PRIVATE_IP}:32000\\\"]}\" | sudo tee /etc/docker/daemon.json'"
- gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh airgap-workstation -- sudo systemctl restart docker"
-```
-
-Before proceeding, re-run the following command until docker has come back up:
-
-```shell script
-gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh airgap-workstation -- docker image ls"
-```
-
-and you see
-
-```shell script
-REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
-```
-
-
-
-We can verify connectivity with a login + pull of the image we previously pushed
-
-```shell script
- gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh airgap-workstation -- docker login ${CLUSTER_PRIVATE_IP}:32000 --username kots --password kots"
-
-# note we've hard-coded the IP here, not using the env var
- gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh airgap-workstation -- docker pull ${CLUSTER_PRIVATE_IP}:32000/busybox:latest"
-```
-
-
-you should see something like
-
-```text
-latest: Pulling from busybox
-91f30d776fb2: Pulling fs layer
-91f30d776fb2: Verifying Checksum
-91f30d776fb2: Download complete
-91f30d776fb2: Pull complete
-Digest: sha256:2131f09e4044327fd101ca1fd4043e6f3ad921ae7ee901e9142e6e36b354a907
-Status: Downloaded newer image for 10.240.0.100:32000/busybox:latest
-10.240.0.100:32000/busybox:latest
-```
 
 ###### Kubectl
 
-next, ssh into the airgapped worksation and grab the `admin.conf` from the cluster and run a few kubectl commands to ensure its working
+ssh into the airgapped worksation and grab the `admin.conf` from the cluster and run a few kubectl commands to ensure its working
 
 ```shell script
 gcloud compute ssh --ssh-flag=-A airgap-jump -- 'ssh -A airgap-workstation'
@@ -215,7 +141,7 @@ kubectl get ns
 kubectl get pod -n kube-system
 ```
 
-you should see something like
+You should see something like
 
 ```
 NAME                                   READY   STATUS    RESTARTS   AGE
@@ -254,29 +180,35 @@ namespace/test-deploy created
 Next, let's make a secret for our registry
 
 ```shell script
-gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh -A airgap-workstation -- /snap/bin/kubectl --kubeconfig=admin.conf -n $NAMESPACE create secret  docker-registry registry-creds --docker-server=${CLUSTER_PRIVATE_IP}:32000 --docker-username=kots --docker-password=kots --docker-email=a@b.c"
+gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh -A airgap-workstation -- /snap/bin/kubectl --kubeconfig=admin.conf -n $NAMESPACE create secret  docker-registry registry-creds --docker-server=${DOCKER_REGISTRY} --docker-username=${DOCKER_USERNAME} --docker-password=${DOCKER_PASSWORD} --docker-email=a@b.c"
 ```
 
 We should see
 
 ```text
-secret/registry-creds
+secret/registry-creds created
 ```
 
 #### Installing
 
+From the Jump box, download the kots CLI from GitHub and install it on the airgapped workstation
+
+```shell script
+
+```
+
 From the Jump box, download the kots bundle from S3 and scp it to the airgapped workstation. In a "full airgap" or "sneakernet" scenario, replace `scp` with whatever process is appropriate for moving assets into the airgapped cluster.
 
 ```shell script
-gcloud compute ssh --ssh-flag=-A airgap-jump -- 'wget https://kots-experimental.s3.amazonaws.com/kots-v1.16.2-airgap-experimental-alpha4.tar.gz'
-gcloud compute ssh --ssh-flag=-A airgap-jump -- 'scp kots-v1.16.2-airgap-experimental-alpha4.tar.gz airgap-workstation:'
+gcloud compute ssh --ssh-flag=-A airgap-jump -- 'wget https://github.com/replicatedhq/kots/releases/download/v1.17.0/kotsadm.tar.gz'
+gcloud compute ssh --ssh-flag=-A airgap-jump -- 'scp kotsadm.tar.gz airgap-workstation:'
 ```
 
 Now, we're ready to untar the bundle and run the install script:
 
 
 ```shell script
-gcloud compute ssh --ssh-flag=-A airgap-jump -- 'ssh airgap-workstation tar xvf kots-v1.16.2-airgap-experimental-alpha4.tar.gz'
+gcloud compute ssh --ssh-flag=-A airgap-jump -- 'ssh airgap-workstation tar xvf kotsadm.tar.gz'
 ```
 
 
@@ -303,10 +235,10 @@ Should print
 ./troubleshoot/support-bundle.yaml
 ```
 
-Next, let's run it with our parameters, passing the registry IP, namespace we created, and name of the registry secret:
+Next, let's run it with our parameters, passing the registry IP, namespace we created, and name of the registry secret. We'll omit the `DOCKER_USERNAME` and `DOCKER_PASSWORD` args since we've previously run a `docker login` on the workstation
 
 ```shell script
-gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh airgap-workstation -- KUBECONFIG=./admin.conf PATH=${PATH}:/snap/bin ./install.sh ${CLUSTER_PRIVATE_IP}:32000 ${NAMESPACE} registry-creds "
+gcloud compute ssh --ssh-flag=-A airgap-jump -- "ssh airgap-workstation -- KUBECONFIG=./admin.conf PATH=${PATH}:/snap/bin ./install.sh ${DOCKER_REGISTRY} ${NAMESPACE} registry-creds "
 ```
 
 
@@ -440,6 +372,7 @@ Asumming this is our output, we'll set the `PORT` to `40038`
 NAME               TYPE       CLUSTER-IP   EXTERNAL-IP   PORT(S)          AGE
 kotsadm-nodeport   NodePort   10.96.3.54   <none>        3000:40038/TCP   6s
 ```
+
 
 Create a SSH tunnel on your laptop via the Jumpbox node.
 
